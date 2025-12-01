@@ -1,0 +1,226 @@
+default:
+  tags:
+    - general
+  image: node:20
+
+# -------------------- INCLUDES & SHARED CONFIGURATIONS --------------------
+
+# Includes shared pipeline templates and TestRail Uploader configurations
+include:
+  - project: 'lululemon/pipeline-components/pipeline-templates'
+    file: 'Application.gitlab-ci.yml'  # Loads organization-wide application-level CI configurations.
+
+  - project: "lululemon/lululemon-internal/quality-engineering/testrail-uploader"
+    file: "/testrail.gitlab-ci.yml"  # Uses the latest version from the main branch.
+
+# -------------------- ENVIRONMENT VARIABLES --------------------
+
+variables:
+  SAUCECTL_VERSION: 0.190.1  # Version of SauceCTL being used
+  SAUCE_USERNAME: ${SAUCE_USERNAME}  # Sauce Labs credentials (set in GitLab CI/CD)
+  SAUCE_ACCESS_KEY: ${SAUCE_ACCESS_KEY}
+
+  BASE_URL:
+    description: >
+      Specify the base URL to run the tests against
+      (e.g., https://stage.lululemon.com).
+    value: "https://stage.lululemon.com"
+
+  IS_DESKTOP:
+    value: "true"
+    description: >
+      Determines if tests should run in desktop or mobile mode.
+      true = Desktop, false = Mobile Web.
+
+  BLOCK_ANALYTICS_CALLS:
+    value: "true"
+    description: >
+      Enables blocking of analytics calls to improve test stability.
+      Turn off if analytics-dependent UI elements break.
+
+  SPEC_FILE:
+    value: ""
+    description: "Specifies which test suite to run. Leave blank for all tests."
+
+  NETWORK_URL:
+    value: ""
+    description: "Optional. Define a network URL for request interception."
+
+  RUN_SAUCELABS_TESTS:
+    value: "false"
+    description: "Set to 'true' to run tests in Sauce Labs; default is 'false'."
+
+  TR_PROJECT_ID:
+    value: ""
+    description: "Define the TestRail project ID before running the pipeline."
+
+  TR_PROJECT_NAME:
+    value: ""
+    description: "Define the TestRail project name before running the pipeline."
+
+# -------------------- PIPELINE STAGES --------------------
+
+stages:
+  - linting  # Runs ESLint for code quality checks
+  - verify   # Future verification stage (if needed)
+  - test     # Runs Playwright tests
+  - execute  # Executes TestRail integration and uploads results
+
+# -------------------- LINTING JOB --------------------
+
+linting:
+  stage: linting
+  image: public.ecr.aws/docker/library/node:lts
+  script:
+    - mkdir -p lint-results
+    - yarn eslint . --format json --output-file lint-results/eslint-report.json  # Saves lint results
+  artifacts:
+    paths:
+      - lint-results/
+    expire_in: 1 week  # Keeps lint results for a week
+  rules:
+    - when: always  # Always runs, even if other jobs fail
+
+# -------------------- GLOBAL BEFORE SCRIPT --------------------
+
+before_script:
+  - export SHELL=/bin/bash
+  - echo "Enabling Corepack..."
+  - corepack enable || echo "Corepack not available, skipping..."
+
+  # Install dependencies
+  - echo "Installing project dependencies with Yarn..."
+  - yarn install --frozen-lockfile
+
+  # Prepare directories for storing test results
+  - mkdir -p results
+
+  # Compile TypeScript
+  - echo "Compiling TypeScript..."
+  - yarn tsc
+
+  # Print environment info
+  - echo "Node.js version:"
+  - node --version
+
+# -------------------- CONDITIONAL JOB: SAUCE LABS TESTS --------------------
+
+Playwright Analytics Saucelabs Job:
+  stage: test
+  script:
+    - export PATH="./node_modules/.bin:$PATH"
+
+    # Check if a specific test file is defined
+    - |
+      if [ -z "$SPEC_FILE" ]; then
+        echo "WARNING: SPEC_FILE is not defined. Running all tests."
+      fi
+
+    - if [[ ! "$SPEC_FILE" =~ ^tests/ ]]; then SPEC_FILE="tests/$SPEC_FILE"; fi
+
+    # Export evn variables for this job
+    - export BASE_URL="${BASE_URL}"
+    - export IS_DESKTOP="${IS_DESKTOP}"
+    - export BLOCK_ANALYTICS_CALLS="${BLOCK_ANALYTICS_CALLS}"
+    - export SPEC_FILE="${SPEC_FILE}"
+    - export NETWORK_URL="${NETWORK_URL}"
+
+    # Print environment variables for debugging
+    - echo "Running with the following variables:"
+    - echo "BASE_URL=${BASE_URL}"
+    - echo "IS_DESKTOP=${IS_DESKTOP}"
+    - echo "BLOCK_ANALYTICS_CALLS=${BLOCK_ANALYTICS_CALLS}"
+    - echo "SPEC_FILE=${SPEC_FILE}"
+    - echo "NETWORK_URL=${NETWORK_URL}"
+
+    # Execute SauceCTL tests
+    - saucectl run --verbose
+
+    # Store test results for reporting
+    - mkdir -p test-results
+    - mkdir -p .playwright/traces
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+      - .playwright/traces/
+    expire_in: 1 week  # Store test artifacts for one week
+  rules:
+    - if: '$RUN_SAUCELABS_TESTS == "true"'  # Runs only when Sauce Labs execution is enabled
+  allow_failure: true  # Does not block the pipeline on failure
+
+# -------------------- AFTER SCRIPT CLEANUP --------------------
+
+after_script:
+  - rm -rf playwright-report  # Cleanup Playwright reports
+  - pgrep -f sauce-connect && pkill -f sauce-connect || echo "No sauce-connect process to kill."
+
+# -------------------- RUNNING PLAYWRIGHT TESTS --------------------
+
+testrail-playwright:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  script:
+    - yarn playwright test || echo "JUnit report missing!"
+
+    # Export evn variables for this job
+    - export BASE_URL="${BASE_URL}"
+    - export IS_DESKTOP="${IS_DESKTOP}"
+    - export BLOCK_ANALYTICS_CALLS="${BLOCK_ANALYTICS_CALLS}"
+    - export SPEC_FILE="${SPEC_FILE}"
+    - export NETWORK_URL="${NETWORK_URL}"
+
+    # Debug: Print test execution environment
+    - echo "Running with variables:"
+    - echo "BASE_URL=${BASE_URL}"
+    - echo "IS_DESKTOP=${IS_DESKTOP}"
+    - echo "BLOCK_ANALYTICS_CALLS=${BLOCK_ANALYTICS_CALLS}"
+    - echo "SPEC_FILE=${SPEC_FILE}"
+    - echo "NETWORK_URL=${NETWORK_URL}"
+
+  artifacts:
+    paths:
+      - results/test-results.xml  # Store test results for reporting
+    when: always
+    reports:
+      junit: results/test-results.xml
+  rules:
+    - if: '$RUN_SAUCELABS_TESTS == "false"'  # Runs only when Sauce Labs is disabled
+
+# -------------------- UPLOADING TEST RESULTS TO TESTRAIL --------------------
+
+testrail-upload:
+  stage: execute
+  image: mcr.microsoft.com/playwright:v1.40.0-focal
+  extends: .testrail_uploader
+  needs: [testrail-playwright]
+  script:
+    - export PATH="./node_modules/.bin:$PATH"
+
+    # Check if TestRail variables are set
+    - |
+      if [ -z "$TR_PROJECT_ID" ] || [ -z "$TR_PROJECT_NAME" ]; then
+        echo "WARNING: TR_PROJECT_ID or TR_PROJECT_NAME is not set. Skipping TestRail upload."
+        exit 0  # Exit gracefully to avoid pipeline failure
+      fi
+
+    # Debug: List artifact files before proceeding
+    - echo "Listing contents of results directory..."
+    - ls -l results/ || echo "results/ directory does not exist"
+
+    # Run TestRail uploader only if variables are defined
+    - yarn testrail:upload || echo "TestRail upload failed, but proceeding..."
+
+  artifacts:
+    paths:
+      - results/test-results.xml  # Ensures results are uploaded to TestRail
+    when: always
+    reports:
+      junit: results/test-results.xml
+
+  variables:
+    TR_PROJECT_ID: ${TR_PROJECT_ID}
+    TR_PROJECT_NAME: ${TR_PROJECT_NAME}
+    TR_CASE_MATCHER: name
+    TR_REPORT_DIR: results
+    TR_REPORT_PATTERN: test-results.xml

@@ -1,0 +1,45 @@
+# .gitignore
+#
+# This file specifies the files and directories to be ignored by Git.
+# It helps keep the repository clean by excluding unnecessary or sensitive files
+# such as logs, build artifacts, and IDE configurations.
+
+# Logs and Reports
+mochawesome-report/
+TestReport/
+artifacts/
+__assets__/
+mochawesome/
+cron/
+dist
+screenshots/
+test-reports/
+results/
+
+# VSCode specific files
+.vscode
+
+# IntelliJ IDEA specific files
+.idea/
+
+# Dependency directories
+node_modules/
+
+# macOS specific files
+.DS_Store
+
+# TypeScript Config Files
+tsconfig.tsbuildinfo
+
+# Saucectl specific files
+.sauce/sauce-report/
+
+# Jest Coverage
+coverage/
+
+# TestRail artifacts
+created_run.json
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

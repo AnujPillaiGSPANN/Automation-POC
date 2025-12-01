@@ -1,0 +1,8 @@
+# Ignore the node_modules folder, which contains third-party dependencies.
+node_modules
+
+# Ignore the dist folder, which contains build artifacts.
+dist
+
+# Ignore the coverage folder, which contains test coverage reports.
+coverage

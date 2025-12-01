@@ -1,0 +1,31 @@
+# .sauceignore
+#
+# This file specifies the files and directories to be excluded when running Sauce Labs tests.
+# It helps ensure that unnecessary files are not uploaded, reducing clutter and speeding up test execution.
+
+# Node.js dependencies
+node_modules
+
+# Playwright-specific artifacts
+test-results
+.playwright
+
+# Sauce Labs-specific artifacts
+artifacts
+dist
+coverage
+
+# Environment files
+
+# Version control
+.git
+.gitignore
+
+# IDE and editor files
+.vscode
+.idea
+
+# Logs and temporary files
+logs
+*.log
+*.tmp

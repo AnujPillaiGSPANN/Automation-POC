@@ -1,0 +1,71 @@
+{
+  "name": "gspann-poc-automation-playwright",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "Will create and push the code.",
+  "author": "Atul Gupta <agupta9@lululemon.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "smokeTest": "npx playwright test --grep @smoke --project=Chrome",
+    "regressionTest": "npx playwright test --grep @regression --project=Chrome",
+    "prebuild": "rm -rf dist",
+    "pretest": "yarn build",
+    "build": "tsc",
+    "test": "npx playwright test",
+    "test:testrail-upload": "yarn playwright test && yarn testrail:upload",
+    "test:prod": "yarn build && npx playwright test",
+    "test:debug": "PWDEBUG=1 playwright test",
+    "test:sauce": "yarn saucectl run",
+    "test:env": "env $(grep -v '^#' .env | xargs) playwright test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0",
+    "@playwright/test": "^1.53.1",
+    "@types/node": "^22.13.1",
+    "@types/xlsx": "^0.0.35",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "dotenv-cli": "^7.4.4",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsdoc": "^50.6.0",
+    "eslint-plugin-playwright": "^2.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-sort-keys-fix": "^1.1.2",
+    "globals": "^15.14.0",
+    "lint-staged": "^15.4.1",
+    "playwright": "^1.49.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "prettier": {
+    "semi": true,
+    "singleQuote": true,
+    "printWidth": 80
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "dependencies": {
+    "@saucelabs/bin-wrapper": "^2.1.1",
+    "adm-zip": "^0.5.16",
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
+    "saucectl": "^0.191.0",
+    "tar-stream": "^3.1.7",
+    "xlsx": "^0.18.5"
+  }
+}

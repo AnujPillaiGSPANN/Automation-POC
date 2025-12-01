@@ -1,0 +1,89 @@
+{
+  "compilerOptions": {
+    /**
+     * Specifies the module system for the project.
+     * `ESNext` enables modern JavaScript module syntax (import/export).
+     */
+    "module": "ESNext",
+
+    /**
+     * Specifies the JavaScript language features to use.
+     * `ESNext` ensures the output uses the latest ECMAScript features.
+     */
+    "target": "ESNext",
+
+    /**
+     * Determines how modules are resolved.
+     * `node` uses Node.js-style module resolution.
+     */
+    "moduleResolution": "node",
+
+    /**
+     * Ensures compatibility with CommonJS modules.
+     */
+    "esModuleInterop": true,
+
+    /**
+     * Enables strict type-checking options.
+     * Helps catch potential errors at compile time.
+     */
+    "strict": true,
+
+    /**
+     * Allows using `import default` syntax with CommonJS modules.
+     */
+    "allowSyntheticDefaultImports": true,
+
+    /**
+     * Allows importing `.js` files in the project.
+     */
+    "allowJs": true,
+
+    /**
+     * Enables importing JSON files as modules.
+     */
+    "resolveJsonModule": true,
+
+    /**
+     * Ensures file imports respect consistent casing.
+     * Prevents case-related issues across operating systems.
+     */
+    "forceConsistentCasingInFileNames": true,
+
+    /**
+     * Skips type-checking of declaration files (`.d.ts`) for faster builds.
+     */
+    "skipLibCheck": true,
+
+    /**
+     * Specifies the output directory for compiled JavaScript files.
+     */
+    "outDir": "./dist",
+
+    /**
+     * Specifies the root directory for TypeScript source files.
+     */
+    "rootDir": "./",
+
+    /**
+     * Includes type definitions for Node.js and Playwright.
+     */
+    "types": ["node", "playwright"],
+
+    /**
+     * Adds built-in type definitions for modern JavaScript and browser features.
+     */
+    "lib": ["esnext", "dom"]
+  },
+
+  /**
+   * Specifies the files or patterns to include in the TypeScript compilation.
+   */
+  "include": ["**/*.ts"],
+
+  /**
+   * Specifies the files or patterns to exclude from the TypeScript compilation.
+   * Excludes `node_modules` and `dist` directories to avoid redundant processing.
+   */
+  "exclude": ["node_modules", "dist", "playwright-report", ".prettierrc.cjs"]
+}
