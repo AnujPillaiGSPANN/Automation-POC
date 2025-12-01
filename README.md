@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # playwright-analytics-na
 This project leverages Playwright to perform end-to-end testing for our analytics-focused teams (DE, DAO, DCP). 
 It includes comprehensive configurations to ensure seamless testing across environments and browsers while adhering to 
@@ -369,3 +370,7 @@ View reports in the `playwright-report` directory.
 - [Sauce Labs Documentation](https://docs.saucelabs.com/)
 - [ESLint Rules](https://eslint.org/docs/latest/rules/)
 - [Prettier Documentation](https://prettier.io/docs/en/)
+=======
+# Automation-POC
+This is a POC for the automation of the NA QA tasks in the Lululemon Project.
+>>>>>>> b945a5cd8dd3525ef39cbf1b5f3e83201e84604d
