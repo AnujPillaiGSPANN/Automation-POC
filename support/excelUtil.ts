@@ -88,7 +88,9 @@ export async function updateResultinExcel(
   filePath: string,
   rowNumber: number,
   commentColumn: string = "M",   // default parameter Comment column
-  commentText: string = ""       // default value 
+  commentText: string = "",// default value 
+  isBold: boolean = false,
+  isPriceCorrect: boolean = false      
 ) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.readFile(filePath);
@@ -102,6 +104,20 @@ export async function updateResultinExcel(
   
   const commentCellAddress = `${commentColumn}${rowNumber}`;
   const commentCell = worksheet.getCell(commentCellAddress);
+  // console.log(commentCell);
+  
+   if(isBold){
+    let ecomCellColumn = 'E';
+    let ecomCellRow = rowNumber;
+    let ecomCellAddress = `${ecomCellColumn}${ecomCellRow}`;
+    console.log('Ecom name bold-',ecomCellAddress);
+    
+    const ecomCell = worksheet.getCell(ecomCellAddress);
+    ecomCell.style = {font:{ bold: true }};
+    console.log('Boldening');
+    await workbook.xlsx.writeFile(filePath);
+    return;
+  }
 
   // Handle ExcelJS .note or fallback
   let existingComment = "";
@@ -134,13 +150,31 @@ export async function updateResultinExcel(
     commentCell.value = newComment;
   }
 
-  commentCell.font = { bold: true };
+  // commentCell.font = { bold: true };
+   if(isPriceCorrect){
+    let priceCellColumn = 'H';
+    let priceCellRow = rowNumber;
+    let priceCellAddress = `${priceCellColumn}${priceCellRow}`;
+    // console.log(priceCellAddress);
+    
+    const priceCell = worksheet.getCell(priceCellAddress);
+    console.log(priceCell);
+    
+    priceCell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    // ARGB format: FF (Alpha/Opacity) 00 (Red) FF (Green) 00 (Blue)
+    fgColor: { argb: 'FF00FF00' } 
+};
+  }
   console.log('Saving data to excel file...'); //udpated the M2 column with newComment->message from the test
   
   await workbook.xlsx.writeFile(filePath);
   console.log(
     `Row ${rowNumber} updated with comment in ${commentCellAddress}`
   );
+
+ 
 }
 
 /**
