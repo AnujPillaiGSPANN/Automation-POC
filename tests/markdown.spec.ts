@@ -66,6 +66,7 @@ test.describe('CDP Tests', () => {
         try {
           // if product not found on UI then skip other validations.
           let prodfound =  await homePage.crawlToProduct(i+1, ProductName, Class)
+          updateResultinExcel(TESTDATA.Path, i+1, 'E', "", true, false);
           if (!prodfound) {
             console.log(`Product - ${ProductName} not found, skipping...`);
             continue; 

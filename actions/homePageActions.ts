@@ -111,7 +111,7 @@ export class HomePage {
         } else {
           const message = "Product "+productName+" not found and no more products to load.";
           console.log(message);
-          updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+          updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.catalogOpsColumn, message);
           break;
         }
       }
@@ -150,7 +150,7 @@ export class HomePage {
       const skippedProdValidation= 'Product validation skipped as Colour not found -> ';
       const message = skippedProdValidation+`Expected Color "${expColor}" for "${expProductName}" was not present. `;
       console.error(message);
-      await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message); //udpated the excel
+      await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.catalogOpsColumn, message); //udpated the excel
       return;
     }
     
@@ -169,7 +169,7 @@ export class HomePage {
     } catch (error) {
       const message = `Expected Product name not matched with product name on UI"${expProductName}".`;
       console.error(message);
-      await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+      await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.catalogOpsColumn, message);
       return;
     }
     // If both pass then mark PASS
@@ -208,6 +208,8 @@ console.log("Sizes on Page:", sizeTexts);
 // check size list length matches
 try {
     expect(sizeTexts.length).toBe(expectedSizes.length);
+    console.log('size check try block');
+    
 } catch {
     // 1. Find sizes that are expected but NOT found on the page (missing sizes)
     const missingSizes = expectedSizes.filter(expectedSize =>
@@ -237,7 +239,10 @@ try {
         }
     }
     console.log(message);
-    updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+    console.log('outside try catch');
+    
+    updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message);
+
     return;
   }
     // check each expected size exists
@@ -247,11 +252,11 @@ try {
       } catch {
         const message = "Sizes " + sizeTexts + " not present for this product.";
         console.log(message);
-        updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+        updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message);
       }
     });
     let message = `Passed: "${expectedSizes}" are present.`;
-    updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+    updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message);
   }
 
   async verifyMarkdProductPrice(rowNumber: number, expRegPrice: string, expMarkPrice: string){
@@ -273,11 +278,13 @@ try {
       expect(markdownPrice).toBe(expMarkPrice);  // getting price from UI in $49 USD but only $49 needed.
       expect(regularPrice).toBe(expRegPrice);
       let message = `Passed: "MarkedDownPrice-${markdownPrice} & RegularPrice-${regularPrice}" are present.`;
-      updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+      updateResultinExcel(TESTDATA.Path, rowNumber, 
+        TESTDATA.priceNotesColumn, message, false,true);
+        // updateResultinExcel(TESTDATA.Path, rowNumber, 'H', '***');
     }catch {
       const message = "Markdown Price "+markdownPrice+" and Regular Price "+regularPrice+" on UI not matched with expected Markdown price "+expMarkPrice+" and Regular price "+expRegPrice+" for this product.";
       console.log(message);
-      updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+      updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.priceNotesColumn, message);
       return;
     }
   }
@@ -376,7 +383,7 @@ try {
     if (brokenImages.length > 0) {
       const message = brokenImages.join('\n'); // each on new line
       console.log(`Broken images found:\n${message}`);
-      await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+      await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.photoNotesColumn, message);
     } else {
       console.log("No broken images");
     }
