@@ -18,7 +18,7 @@ export class HomePageLocator {
   static readonly homePagePopUp = '[aria-label="Choose a location"]'; 
   static readonly markdownHomePagePopUp = 'div[aria-labelledby="welomeModalID"]';
   static readonly modalCloseButton = '(//button[contains(@class,"modal_closeButton")])[1]';
-  static readonly expProductName = 'div.pdp-product-header h1 div';
+  static readonly expProductName = 'div.pdp-product-header h1';
   static readonly sizes = "div[data-testid='size-selector'] div[class^='size-selector'] div [data-testid='button-tile'] span";
   static readonly markdownPrice = "//div[contains(@class, 'product-header')]//span[contains(@class, 'lll-hidden-visually') and contains(normalize-space(text()), 'Sale Price')]/following-sibling::span[1]"
   static readonly regularPrice = "//div[contains(@class, 'product-header')]//span[contains(@class, 'lll-hidden-visually') and contains(normalize-space(text()), 'Regular Price')]/following-sibling::span[1]" 
