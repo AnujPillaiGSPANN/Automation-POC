@@ -150,20 +150,25 @@ export async function updateResultinExcel(
     commentCell.value = newComment;
   }
 
-  // commentCell.font = { bold: true };
    if(isPriceCorrect){
+    console.log('coloring cell');
+    
     let priceCellColumn = 'H';
     let priceCellRow = rowNumber;
     let priceCellAddress = `${priceCellColumn}${priceCellRow}`;
-    // console.log(priceCellAddress);
     
     const priceCell = worksheet.getCell(priceCellAddress);
-    console.log(priceCell);
+    // Add the Border property for a thick border befor filling color
+  priceCell.style =   {border : {
+    top: { style: 'thick', color: { argb: 'FF000000' } }, // Black color
+    left: { style: 'thick', color: { argb: 'FF000000' } },
+    bottom: { style: 'thick', color: { argb: 'FF000000' } },
+    right: { style: 'thick', color: { argb: 'FF000000' } }
+  }};
     
     priceCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    // ARGB format: FF (Alpha/Opacity) 00 (Red) FF (Green) 00 (Blue)
     fgColor: { argb: 'FF00FF00' } 
 };
   }
