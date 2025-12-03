@@ -65,7 +65,8 @@ test.describe('CDP Tests', () => {
         // This ensures the loop doesn’t break. It just skips to the next iteration.
         try {
           // if product not found on UI then skip other validations.
-          let prodfound =  await homePage.crawlToProduct(i+1, ProductName, Class)
+          let prodfound =  await homePage.crawlToProduct(i+1, ProductName, Class);
+          //Bolden the ecom name before proceeding
           updateResultinExcel(TESTDATA.Path, i+1, 'E', "", true, false);
           if (!prodfound) {
             console.log(`Product - ${ProductName} not found, skipping...`);

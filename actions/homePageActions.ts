@@ -279,12 +279,16 @@ try {
       expect(markdownPrice).toBe(expMarkPrice);  // getting price from UI in $49 USD but only $49 needed.
       expect(regularPrice).toBe(expRegPrice);
       let message = `Passed: "MarkedDownPrice-${markdownPrice} & RegularPrice-${regularPrice}" are present.`;
+      console.log('Pass condition update');
+      
       updateResultinExcel(TESTDATA.Path, rowNumber, 
         TESTDATA.priceNotesColumn, message, false,true);
         // updateResultinExcel(TESTDATA.Path, rowNumber, 'H', '***');
     }catch {
       const message = "Markdown Price "+markdownPrice+" and Regular Price "+regularPrice+" on UI not matched with expected Markdown price "+expMarkPrice+" and Regular price "+expRegPrice+" for this product.";
       console.log(message);
+      console.log('Fail condition update');
+      
       updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.priceNotesColumn, message);
       return;
     }
