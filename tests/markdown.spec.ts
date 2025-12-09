@@ -59,13 +59,14 @@ test.describe('CDP Tests', () => {
         const RegularPrice  = row[6].toString().trim().startsWith('$') ? row[6].toString().trim() : `$${row[6].toString().trim()}`;
         const MarkdownPrice = row[7].toString().trim().startsWith('$') ? row[7].toString().trim() : `$${row[7].toString().trim()}`;
         const SizeRun       = row[11].trim();
+        const MarkdownPId   = row[2].trim();
 
         console.log(`Row ${i}: Notes=${Notes}, Class=${Class}, EcomName=${ProductName}, ColourDescription=${ColourDescription}, RegularPrice=${RegularPrice}, MarkdownPrice=${MarkdownPrice}, SizeRun=${SizeRun}`);
         
         // This ensures the loop doesn’t break. It just skips to the next iteration.
         try {
           // if product not found on UI then skip other validations.
-          let prodfound =  await homePage.crawlToProduct(i+1, ProductName, Class);
+          let prodfound =  await homePage.crawlToProduct(i+1, ProductName, Class,MarkdownPId);
           //Bolden the ecom name before proceeding
           updateResultinExcel(TESTDATA.Path, i+1, 'E', "", true, false);
           if (!prodfound) {
