@@ -37,7 +37,7 @@ export class HomePageLocator {
   static readonly weMadeTooMuch = "a[data-label='We Made Too Much']";
   static readonly womenChecbox = "label[id='Women-label'] span";
   static readonly menChecbox = "label[id='Men-label'] span";
-
+  static readonly globalSearchBox = "nav-desktop-search";
   static expColor(title: string) {
         return `div[data-testid="hovercontainer"] picture img[title="${title}"]`;
     }

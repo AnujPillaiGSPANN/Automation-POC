@@ -12,9 +12,9 @@ export class HomePage {
   private page: Page;
   colorFound: boolean;
   constructor(page: Page) {
-    this.page = page; 
+    this.page = page;
     this.colorFound = false;
-    
+
   }
 
   async login(username: string, password: string) {
@@ -33,12 +33,12 @@ export class HomePage {
     //await homePagePopUp.waitFor(); // This is more targeted and often better than waiting for the whole page.
     //await homePagePopUp.isVisible();   // Return value: true or false.
     try {
-    // Wait up to 5 seconds for popup to be visible
-    await homePagePopUp.waitFor({ state: "visible", timeout: 30000 });
-    // If visible, click close button
-    await this.page.locator(HomePageLocator.modalCloseButton).click();
+      // Wait up to 5 seconds for popup to be visible
+      await homePagePopUp.waitFor({ state: "visible", timeout: 30000 });
+      // If visible, click close button
+      await this.page.locator(HomePageLocator.modalCloseButton).click();
     } catch {
-        console.log("Popup not visible. continuing...");
+      console.log("Popup not visible. continuing...");
     }
   }
 
@@ -47,13 +47,13 @@ export class HomePage {
   }
 
 
-  async crawlToProduct(rowNumber: number, productName: string, Class: string){
+  async crawlToProduct(rowNumber: number, productName: string, Class: string, MarkdownPID: string) {
     // const href = await this.page.locator(HomePageLocator.weMadeTooMuch).getAttribute('href'); //link top nav - we made too much
     const href = "c/we-made-too-much/n18mhd";
-    const link = "https://preview.lululemon.com/"+href; // +href->/c/we-made-too-much/n18mhd
+    const link = "https://preview.lululemon.com/" + href; // +href->/c/we-made-too-much/n18mhd
     if (href) {
       console.log('Navigating to:', link);//https://preview.lululemon.com/c/we-made-too-much/n18mhd"
-      await this.page.goto(link); 
+      await this.page.goto(link);
     } else {
       throw new Error(`No href found for locator: ${link}`);
     }
@@ -65,11 +65,11 @@ export class HomePage {
       console.log("Unable to find women checkbox...trying again.")
       await this.page.waitForSelector(HomePageLocator.menChecbox); // wait checkbox filter for men
     }
-    
+
 
     // click an empty part of the page to remove hover state
     switch (true) {
-      case Class.includes("Women"): 
+      case Class.includes("Women"):
         console.log("Selecting Women category");
         await this.page.locator(HomePageLocator.womenChecbox).click(); // click on checkbox
         break;
@@ -83,6 +83,7 @@ export class HomePage {
     }
     let found = false;
     let lastHeight = 0;
+    let count = 0;
 
     while (!found) {
       // Check if product exists
@@ -108,24 +109,45 @@ export class HomePage {
           console.log("Clicking 'View More Products' button...");
           await viewMore.first().click();
           await this.page.waitForTimeout(2000); // Wait for products to load
+
+
+
         } else {
-          const message = "Product "+productName+" not found and no more products to load.";
-          console.log(message);
-          updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.catalogOpsColumn, message);
-          break;
+          found = await this.searchProductById(MarkdownPID, productName);
+          // console.log('A product is found by PID: ', found);
+          if (!found) {
+            const message = "Ecom Product: " + productName + " and Markdown PID are not available on WEB.";
+            console.log(`Path:${TESTDATA.Path},row: ${rowNumber}, column:${TESTDATA.commentColumn},meesage: ${message}`);
+            
+            console.log(message);
+            await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+            break;
+          }
+
+         
         }
       }
 
+      count++;
       lastHeight = newHeight;
+      console.log('counting scrolls', count);
+
+    //   if (count == 3) { // safety to avoid infinite loop
+    //     found = await this.searchProductById(MarkdownPID, productName);
+    //     console.log('after search by id found status', found);
+
+    //   }
     }
     return found;
   }
 
+ 
   //Update the color value for product verification
   async colorUpdate(color: boolean) {
     //update the color value
     this.colorFound = color;
   }
+
 
   //check the color availability
   async colorCheck() {
@@ -135,7 +157,7 @@ export class HomePage {
 
 
   async verifyProduct(rowNumber: number, expProductName: string, expColor: string) {
-  // Verify Color
+    // Verify Color
     try {
       const colorName = await this.page.locator(HomePageLocator.expColor(expColor)).getAttribute("title");
       console.log(`Actual color name: ${colorName}`);
@@ -143,27 +165,28 @@ export class HomePage {
       await this.page.locator(HomePageLocator.expColor(expColor)).click();
       let message = `Passed: ${expColor}" is present.`;
       await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
-  //update color found status
+      //update color found status
       await this.colorUpdate(true);
     } catch (error) {
-      
-      const skippedProdValidation= 'Product validation skipped as Colour not found -> ';
-      const message = skippedProdValidation+`Expected Color "${expColor}" for "${expProductName}" was not present. `;
+
+      const skippedProdValidation = 'Product validation skipped as Colour not found -> ';
+      const message = skippedProdValidation + `Expected Color "${expColor}" for "${expProductName}" was not present. `;
       console.error(message);
       await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.catalogOpsColumn, message); //udpated the excel
       return;
     }
     //validation correct
-    
+
     // Verify Product Name
     try {
-    // skipping validation if color not found
-      if(! await this.colorCheck()){
-        console.log("Skipping product verification due to color not found."); return;}
+      // skipping validation if color not found
+      if (! await this.colorCheck()) {
+        console.log("Skipping product verification due to color not found."); return;
+      }
       const productName = await this.page.locator(HomePageLocator.expProductName).textContent(); //product name on UI
       console.log("Actual product name:", productName);
       const currentProductUrl = this.page.url();
-      console.log("Current product URL - ",currentProductUrl);
+      console.log("Current product URL - ", currentProductUrl);
       expect(productName?.trim()).toBe(expProductName);
       let message = `Passed: ${expProductName}" is present.`;
       await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
@@ -181,7 +204,8 @@ export class HomePage {
   async verifyProductSize(rowNumber: number, expSize: string) {
     // skipping validation if color not found
     if (!(await this.colorCheck())) {
-      console.log('skipping product size validarion as color not found.'); return;}
+      console.log('skipping product size validarion as color not found.'); return;
+    }
     //   // turn it into an array.
     // const expectedSizes = expSize.split(',').map(s => s.trim());
     // console.log("Expected Sizes:", expectedSizes);
@@ -200,52 +224,52 @@ export class HomePage {
     //   return;
     // }
     const expectedSizes = expSize.split(',').map(s => s.trim());
-console.log("Expected Sizes:", expectedSizes);
- 
-// This returns an array of strings without looping manually.
-const sizeTexts = await this.page.locator(HomePageLocator.sizes).allTextContents();
-console.log("Sizes on Page:", sizeTexts);
- 
-// check size list length matches
-try {
-    expect(sizeTexts.length).toBe(expectedSizes.length);
-    console.log('size check try block');
-    
-} catch {
-    // 1. Find sizes that are expected but NOT found on the page (missing sizes)
-    const missingSizes = expectedSizes.filter(expectedSize =>
+    console.log("Expected Sizes:", expectedSizes);
+
+    // This returns an array of strings without looping manually.
+    const sizeTexts = await this.page.locator(HomePageLocator.sizes).allTextContents();
+    console.log("Sizes on Page:", sizeTexts);
+
+    // check size list length matches
+    try {
+      expect(sizeTexts.length).toBe(expectedSizes.length);
+      console.log('size check try block');
+
+    } catch {
+      // 1. Find sizes that are expected but NOT found on the page (missing sizes)
+      const missingSizes = expectedSizes.filter(expectedSize =>
         !sizeTexts.includes(expectedSize)
-    );
-   
-    let message = "";
-   
-    if (missingSizes.length > 0) {
+      );
+
+      let message = "";
+
+      if (missingSizes.length > 0) {
         // SCENARIO 1: Expected sizes are missing (e.g., Expected: S,M,L; Found: S,M)
         message = `Failed: The following expected sizes are MISSING from the UI: [${missingSizes.join(', ')}].`;
-    } else {
+      } else {
         // SCENARIO 2: Length is wrong, but nothing is missing. This means the UI has EXTRA sizes.
         // We calculate and report only the extra sizes, as requested.
-       
+
         // Find sizes that ARE on the page but NOT expected (extra sizes)
         const extraSizes = sizeTexts.filter(pageText =>
-            !expectedSizes.includes(pageText)
+          !expectedSizes.includes(pageText)
         );
- 
-        if (extraSizes.length > 0) {
-            message = `Failed: The UI contains UNEXPECTED (extra) sizes: [${extraSizes.join(', ')}].`;
-        } else {
-             // Fallback for an extremely rare case where length failed, but content check passes.
-             // This usually indicates an issue with invisible or empty elements being counted.
-             message = `Sizes list length mismatch (${sizeTexts.length} found, ${expectedSizes.length} expected), but content is logically equivalent. Investigate hidden elements.`;
-        }
-    }
-    console.log(message);
-    console.log('outside try catch');
-    
-    updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message);
 
-    return;
-  }
+        if (extraSizes.length > 0) {
+          message = `Failed: The UI contains UNEXPECTED (extra) sizes: [${extraSizes.join(', ')}].`;
+        } else {
+          // Fallback for an extremely rare case where length failed, but content check passes.
+          // This usually indicates an issue with invisible or empty elements being counted.
+          message = `Sizes list length mismatch (${sizeTexts.length} found, ${expectedSizes.length} expected), but content is logically equivalent. Investigate hidden elements.`;
+        }
+      }
+      console.log(message);
+      console.log('outside try catch');
+
+      updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message);
+
+      return;
+    }
     // check each expected size exists
     expectedSizes.forEach(size => {
       try {
@@ -260,9 +284,9 @@ try {
     updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message);
   }
 
-  async verifyMarkdProductPrice(rowNumber: number, expRegPrice: string, expMarkPrice: string){
+  async verifyMarkdProductPrice(rowNumber: number, expRegPrice: string, expMarkPrice: string) {
     // skipping validation if color not found
-    if(!await this.colorCheck())  return;    
+    if (!await this.colorCheck()) return;
     this.page.locator(HomePageLocator.activeSize).scrollIntoViewIfNeeded();
     await this.page.locator(HomePageLocator.activeSize).click();
     // This returns an array of strings without looping manually.
@@ -275,32 +299,32 @@ try {
     console.log(`Prices on Page: Markdown - ${markdownPrice} | Regular - ${regularPrice}`);
 
     // check size list length matches
-    try{
+    try {
       expect(markdownPrice).toBe(expMarkPrice);  // getting price from UI in $49 USD but only $49 needed.
       expect(regularPrice).toBe(expRegPrice);
       let message = `Passed: "MarkedDownPrice-${markdownPrice} & RegularPrice-${regularPrice}" are present.`;
       console.log('Pass condition update');
-      
-      updateResultinExcel(TESTDATA.Path, rowNumber, 
-        TESTDATA.priceNotesColumn, message, false,true);
-        // updateResultinExcel(TESTDATA.Path, rowNumber, 'H', '***');
-    }catch {
-      const message = "Markdown Price "+markdownPrice+" and Regular Price "+regularPrice+" on UI not matched with expected Markdown price "+expMarkPrice+" and Regular price "+expRegPrice+" for this product.";
+
+      updateResultinExcel(TESTDATA.Path, rowNumber,
+        TESTDATA.priceNotesColumn, message, false, true);
+      // updateResultinExcel(TESTDATA.Path, rowNumber, 'H', '***');
+    } catch {
+      const message = "Markdown Price " + markdownPrice + " and Regular Price " + regularPrice + " on UI not matched with expected Markdown price " + expMarkPrice + " and Regular price " + expRegPrice + " for this product.";
       console.log(message);
       console.log('Fail condition update');
-      
+
       updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.priceNotesColumn, message);
       return;
     }
   }
 
   async verifyProductAccordions(rowNumber: number) {
-  // skipping validation if color not found
-      if(!await this.colorCheck())  return;
+    // skipping validation if color not found
+    if (!await this.colorCheck()) return;
     // - use toHaveAttribute('aria-expanded') → checks functional state (accessibility, logic)
     // - use toHaveCSS('height', '0px') → checks visual state (UI actually collapsed/expanded)
     // WHY WE MADE THIS
-    try{
+    try {
       await expect(this.page.locator(HomePageLocator.whyWeMadeThisExpander)).toHaveCSS('height', '0px');
       await this.page.locator(HomePageLocator.whyWeMadeThis).click();
       await expect(this.page.locator(HomePageLocator.whyWeMadeThisSummary)).toHaveAttribute('aria-expanded', 'true');
@@ -317,23 +341,23 @@ try {
       await this.page.locator(HomePageLocator.itemReview).click();
       await expect(this.page.locator(HomePageLocator.itemReviewSummary)).toHaveAttribute('aria-expanded', 'true');
       await expect(this.page.locator(HomePageLocator.itemReviewExpander)).not.toHaveCSS('height', '0px');
-    }catch (error){
-        const message = "There is a issue with Accordions - "+error;
-        console.log(message);
-        updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+    } catch (error) {
+      const message = "There is a issue with Accordions - " + error;
+      console.log(message);
+      updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
     }
   }
-  
+
   async verifyProductImages(rowNumber: number) {
-  // skipping validation if color not found
-      if(!await this.colorCheck())  return;
+    // skipping validation if color not found
+    if (!await this.colorCheck()) return;
 
     const brokenImages: string[] = [];
 
-      // Include all images, not just those with loading="lazy"
+    // Include all images, not just those with loading="lazy"
     // const images = await this.page.locator('img').all();
     const carouselmage = await this.page.locator("//div[starts-with(@class,'carousel_thumbnailsContainer')]//button/picture").all();
-    const thumbImage = await this.page.getByRole('img',{name: 'Slide'}).all();
+    const thumbImage = await this.page.getByRole('img', { name: 'Slide' }).all();
     const whyWeMadeThisImage = await this.page.locator("//div[@data-testid='why-we-made-this']//picture/img").all()
     const images = [...carouselmage, ...thumbImage, ...whyWeMadeThisImage]
     console.log(`Total images found: ${images.length}`);
@@ -395,6 +419,38 @@ try {
 
   }
 
-}
 
-  
+ async searchProductById(MarkdownPID: string, productName: string) {
+    console.log(`Product ECOM name is not available, Searching product by PID: ${MarkdownPID}`);
+    let foundById = false;
+    try {
+      const searchBox = this.page.getByTestId(HomePageLocator.globalSearchBox);
+      await searchBox.fill(MarkdownPID) // Directly press Enter after filling
+      await searchBox.press('Enter');
+      const productTile = "//div[@class='product-tile']/a[@data-productid='" + MarkdownPID + "']";
+      await this.page.waitForTimeout(3000); // Wait for search results to load
+      const productTiles = this.page.locator(productTile);
+      const totalProducts = await productTiles.count();
+      console.log(`Total product tiles found: ${totalProducts}`);
+      if (totalProducts > 0) {
+        if (totalProducts > 1) {
+          console.log(`Multiple products found with ID: ${MarkdownPID}, clicking the first one.`);
+        }
+        // await productLocator.first().click();
+        await productTiles.first().click();
+        console.log(`product found by ID: ${productName}..clicking`);
+        foundById = true;
+      }
+      else {
+        console.log(`Product with ID: ${MarkdownPID} not found via search.`);
+        foundById = false;
+      }
+    }
+    catch {
+      console.log(`Product not found By ID:`);
+      foundById = false;
+    }
+    return foundById;
+  }
+
+}
