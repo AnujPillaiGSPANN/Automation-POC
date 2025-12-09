@@ -48,12 +48,13 @@ export class HomePage {
     await this.page.locator(HomePageLocator.homePagePopUp).click();
   }
 
-  async crawlToProduct(rowNumber: number, productName: string, Class: string) {
+
+  async crawlToProduct(rowNumber: number, productName: string, Class: string, MarkdownPID: string) {
     // const href = await this.page.locator(HomePageLocator.weMadeTooMuch).getAttribute('href'); //link top nav - we made too much
-    const href = 'c/we-made-too-much/n18mhd';
-    const link = 'https://preview.lululemon.com/' + href; // +href->/c/we-made-too-much/n18mhd
+    const href = "c/we-made-too-much/n18mhd";
+    const link = "https://preview.lululemon.com/" + href; // +href->/c/we-made-too-much/n18mhd
     if (href) {
-      console.log('Navigating to:', link); //https://preview.lululemon.com/c/we-made-too-much/n18mhd"
+      console.log('Navigating to:', link);//https://preview.lululemon.com/c/we-made-too-much/n18mhd"
       await this.page.goto(link);
     } else {
       throw new Error(`No href found for locator: ${link}`);
@@ -83,6 +84,7 @@ export class HomePage {
     }
     let found = false;
     let lastHeight = 0;
+    let count = 0;
 
     while (!found) {
       // Check if product exists
@@ -118,32 +120,45 @@ export class HomePage {
           console.log("Clicking 'View More Products' button...");
           await viewMore.first().click();
           await this.page.waitForTimeout(2000); // Wait for products to load
+
+
+
         } else {
-          const message =
-            'Product ' +
-            productName +
-            ' not found and no more products to load.';
-          console.log(message);
-          updateResultinExcel(
-            TESTDATA.Path,
-            rowNumber,
-            TESTDATA.catalogOpsColumn,
-            message,
-          );
-          break;
+          found = await this.searchProductById(MarkdownPID, productName);
+          // console.log('A product is found by PID: ', found);
+          if (!found) {
+            const message = "Ecom Product: " + productName + " and Markdown PID are not available on WEB.";
+            console.log(`Path:${TESTDATA.Path},row: ${rowNumber}, column:${TESTDATA.commentColumn},meesage: ${message}`);
+            
+            console.log(message);
+            await updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+            break;
+          }
+
+         
         }
       }
 
+      count++;
       lastHeight = newHeight;
+      console.log('counting scrolls', count);
+
+    //   if (count == 3) { // safety to avoid infinite loop
+    //     found = await this.searchProductById(MarkdownPID, productName);
+    //     console.log('after search by id found status', found);
+
+    //   }
     }
     return found;
   }
 
+ 
   //Update the color value for product verification
   async colorUpdate(color: boolean) {
     //update the color value
     this.colorFound = color;
   }
+
 
   //check the color availability
   async colorCheck() {
@@ -624,4 +639,39 @@ export class HomePage {
       console.log('No broken images');
     }
   }
+
+
+ async searchProductById(MarkdownPID: string, productName: string) {
+    console.log(`Product ECOM name is not available, Searching product by PID: ${MarkdownPID}`);
+    let foundById = false;
+    try {
+      const searchBox = this.page.getByTestId(HomePageLocator.globalSearchBox);
+      await searchBox.fill(MarkdownPID) // Directly press Enter after filling
+      await searchBox.press('Enter');
+      const productTile = "//div[@class='product-tile']/a[@data-productid='" + MarkdownPID + "']";
+      await this.page.waitForTimeout(3000); // Wait for search results to load
+      const productTiles = this.page.locator(productTile);
+      const totalProducts = await productTiles.count();
+      console.log(`Total product tiles found: ${totalProducts}`);
+      if (totalProducts > 0) {
+        if (totalProducts > 1) {
+          console.log(`Multiple products found with ID: ${MarkdownPID}, clicking the first one.`);
+        }
+        // await productLocator.first().click();
+        await productTiles.first().click();
+        console.log(`product found by ID: ${productName}..clicking`);
+        foundById = true;
+      }
+      else {
+        console.log(`Product with ID: ${MarkdownPID} not found via search.`);
+        foundById = false;
+      }
+    }
+    catch {
+      console.log(`Product not found By ID:`);
+      foundById = false;
+    }
+    return foundById;
+  }
+
 }
