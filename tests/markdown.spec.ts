@@ -81,6 +81,7 @@ test.describe('CDP Tests', () => {
           ? row[7].toString().trim()
           : `$${row[7].toString().trim()}`;
         const SizeRun = row[11].trim();
+        const MarkdownPId = row[2].trim()
 
         console.log(
           `Row ${i}: Notes=${Notes}, Class=${Class}, EcomName=${ProductName}, ColourDescription=${ColourDescription}, RegularPrice=${RegularPrice}, MarkdownPrice=${MarkdownPrice}, SizeRun=${SizeRun}`,

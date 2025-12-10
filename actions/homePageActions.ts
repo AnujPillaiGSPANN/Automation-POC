@@ -277,108 +277,103 @@ export class HomePage {
   async verifyProductSize(rowNumber: number, expSize: string) {
     // skipping validation if color not found
     if (!(await this.colorCheck())) {
-      console.log('skipping product size validation as color not found.');
-      return;
-    }
-    //   // turn it into an array.
-    // const expectedSizes = expSize.split(',').map(s => s.trim());
-    // console.log("Expected Sizes:", expectedSizes);
-
-    // // This returns an array of strings without looping manually.
-    // const sizeTexts = await this.page.locator(HomePageLocator.sizes).allTextContents();
-    // console.log("Sizes on Page: ", sizeTexts);
-
-    // // check size list length matches
-    // try {
-    //   expect(sizeTexts.length).toBe(expectedSizes.length);
-    // } catch {
-    //   const message = "Sizes on UI " + sizeTexts + " not matched with expected sizes " + expectedSizes + " for this product.";
-    //   console.log(message);
-    //   updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
-    //   return;
-    // }
-    const expectedSizes = expSize.split(',').map((s) => s.trim());
-    console.log('Expected Sizes:', expectedSizes);
+      console.log('skipping product size validarion as color not found.'); return;}
+      // turn it into an array.
+    const expectedSizes = expSize.split(',').map(s => s.trim());
+    console.log("Expected Sizes:", expectedSizes);
 
     // This returns an array of strings without looping manually.
-    const sizeTexts = await this.page
-      .locator(HomePageLocator.sizes)
-      .allTextContents();
-    console.log('Sizes on Page:', sizeTexts);
-
+    const sizeTexts = await this.page.locator(HomePageLocator.sizes).allTextContents();
+    console.log("Sizes on Page: ", sizeTexts);
+    //
+      const sizeMissing:string[]=[];
     // check size list length matches
     try {
       expect(sizeTexts.length).toBe(expectedSizes.length);
-      console.log('size check try block');
     } catch {
-      // 1. Find sizes that are expected but NOT found on the page (missing sizes)
-      const missingSizes = expectedSizes.filter(
-        (expectedSize) => !sizeTexts.includes(expectedSize),
-      );
-
-      let message = '';
-
-      if (missingSizes.length > 0) {
-        // SCENARIO 1: Expected sizes are missing (e.g., Expected: S,M,L; Found: S,M)
-        message = `Failed: The following expected sizes are MISSING from the UI: [${missingSizes.join(', ')}].`;
-      } else {
-        // SCENARIO 2: Length is wrong, but nothing is missing. This means the UI has EXTRA sizes.
-        // We calculate and report only the extra sizes, as requested.
-
-        // Find sizes that ARE on the page but NOT expected (extra sizes)
-        const extraSizes = sizeTexts.filter(
-          (pageText) => !expectedSizes.includes(pageText),
-        );
-
-        if (extraSizes.length > 0) {
-          message = `Failed: The UI contains UNEXPECTED (extra) sizes: [${extraSizes.join(', ')}].`;
-        } else {
-          // Fallback for an extremely rare case where length failed, but content check passes.
-          // This usually indicates an issue with invisible or empty elements being counted.
-          message = `Sizes list length mismatch (${sizeTexts.length} found, ${expectedSizes.length} expected), but content is logically equivalent. Investigate hidden elements.`;
-        }
-      }
+      const message = "Sizes on UI " + sizeTexts + " not matched with expected sizes " + expectedSizes + " for this product.";
       console.log(message);
-      console.log('outside try catch');
-
-      updateResultinExcel(
-        TESTDATA.Path,
-        rowNumber,
-        TESTDATA.sizeNotesColumn,
-        message,
-      );
-
-      return;
+      updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.commentColumn, message);
+      // return;
     }
-    // check each expected size exists
-    expectedSizes.forEach((size) => {
+   //Calculating missing sizes:
+    
+    //checking, if UI is having extra sizes
+    sizeTexts.forEach(size => {
+      try {
+        expect(expectedSizes).toContain(size)
+      }
+      catch{
+        sizeMissing.push(size)
+        console.log(`Size is missing in the excelSheet:-> ${size}`);
+        let message = "Extra sizes on UI page:"+sizeMissing ; 
+        console.log(message);
+        updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message,false,false);
+      }
+    })
+
+      // check each expected size exists
+    expectedSizes.forEach(size => {
       try {
         expect(sizeTexts).toContain(size);
+        // console.log(`sdq: ${size}`);
+        
       } catch {
-        const message = 'Sizes ' + sizeTexts + ' not present for this product.';
+      
+        sizeMissing.push(size)
+        console.log(`Size is missing at UI-> ${size}`);
+        
+        const message = "Missing Sizes "+sizeMissing ;
         console.log(message);
-        updateResultinExcel(
-          TESTDATA.Path,
-          rowNumber,
-          TESTDATA.sizeNotesColumn,
-          message,
-        );
+        updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, message,false,false);
       }
     });
-    let message = `Passed: "${expectedSizes}" are present.`;
-    updateResultinExcel(
-      TESTDATA.Path,
-      rowNumber,
-      TESTDATA.sizeNotesColumn,
-      message,
-    );
-  }
+    console.log(`Total missing product sizes: ${sizeMissing}`);
+    
 
-  async verifyMarkdProductPrice(
-    rowNumber: number,
-    expRegPrice: string,
-    expMarkPrice: string,
-  ) {
+// Get all size elements
+    const sizeElements = await this.page.locator(HomePageLocator.sizes).all();
+    
+    // // Prepare an array to hold size and stock status objects
+    const pageSizesData: { size: string, isOutOfStock: boolean }[] = [];
+
+    for (const element of sizeElements) {
+        
+      // Fetch the aria-label content (e.g., "Small, unavailable" or "Medium")
+    const ariaLabel = await element.getAttribute('aria-label') || '';
+        
+     // Determine stock status: true if the aria-label contains "unavailable"
+    const isOutOfStock = ariaLabel.toLowerCase().includes('not available');
+        
+    // Clean the size text: Take the part of the label before the comma, or the full label if no comma.
+     // Fallback to textContent if aria-label is empty.
+    const cleanSizeText = ariaLabel.split(',')[0]?.trim() || (await element.textContent())?.trim() || '';
+
+      if (cleanSizeText) {
+         pageSizesData.push({ size: cleanSizeText, isOutOfStock: isOutOfStock });
+     }
+     
+    }
+    const hasSizes = pageSizesData.length > 0;
+    const allSizesAreOOS = hasSizes && pageSizesData.every(d => d.isOutOfStock);
+    
+
+    // If all sizes are out of stock, add a special entry
+    // if (areAllSizesOOS) {
+    //     // Comment: If all sizes are marked as 'out of stock', add a specific entry to reflect this state.
+    //     pageSizesData.push({ size: 'Sizes OOS', isOutOfStock: true });
+    // }
+    const finalProductComment =  allSizesAreOOS? 'All Sizes OOS' : '';
+
+    const sizeTexts1 = pageSizesData.map(d => d.size); // Array of just the clean size names
+
+    console.log("Sizes on Page:", sizeTexts1);
+    console.log("Sizes and Stock Status:", pageSizesData);
+    console.log("Final Product Comment:", finalProductComment);
+    updateResultinExcel(TESTDATA.Path, rowNumber, TESTDATA.sizeNotesColumn, finalProductComment);
+ 
+  }
+  async verifyMarkdProductPrice(rowNumber: number, expRegPrice: string, expMarkPrice: string){
     // skipping validation if color not found
     if (!(await this.colorCheck())) return;
     this.page.locator(HomePageLocator.activeSize).scrollIntoViewIfNeeded();
