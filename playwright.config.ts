@@ -14,7 +14,7 @@ export default defineConfig({
       {
         name: 'Chrome',
         use: {
-          browserName: 'chromium',
+          browserName: 'chromium',  
           channel: 'chrome',
           viewport: ENV.IS_DESKTOP ? null : { height: 896, width: 414 }, // viewport: null Tells Playwright not to resize the browser — use native window size
           launchOptions: { args: ENV.IS_DESKTOP ? ['--start-maximized'] : [] }, //--start-maximized works only on Chromium and needs viewport: null.
